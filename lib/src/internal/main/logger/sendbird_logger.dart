@@ -10,8 +10,8 @@ class SendbirdLogger {
   Logger logger;
 
   static final _instance = SendbirdLogger._();
-  SendbirdLogger._() : logger = Logger(level: Level.nothing) {
-    _setLogLevel(Level.nothing);
+  SendbirdLogger._() : logger = Logger(level: Level.off) {
+    _setLogLevel(Level.off);
   }
   factory SendbirdLogger() => _instance;
 
@@ -20,7 +20,7 @@ class SendbirdLogger {
   }
 
   void setLogLevelForTest() {
-    _setLogLevel(Level.nothing);
+    _setLogLevel(Level.off);
   }
 
   void e(StackTrace stackTrace, [String? message]) {
@@ -40,7 +40,7 @@ class SendbirdLogger {
   }
 
   void v(StackTrace stackTrace, [String? message]) {
-    logger.v('${_getLogPrefix(stackTrace)} ${message ?? ''}');
+    logger.t('${_getLogPrefix(stackTrace)} ${message ?? ''}');
   }
 
   void _setLogLevel(Level level) {
@@ -60,7 +60,7 @@ class SendbirdLogger {
           warning: '[W]',
           info: '[I]',
           debug: '[D]',
-          verbose: '[V]',
+          trace: '[V]',
         ));
   }
 
@@ -79,10 +79,10 @@ class SendbirdLogger {
       case LogLevel.info:
         return Level.info;
       case LogLevel.none:
-        return Level.nothing;
+        return Level.off;
 
       default:
-        return Level.nothing;
+        return Level.off;
     }
   }
 }

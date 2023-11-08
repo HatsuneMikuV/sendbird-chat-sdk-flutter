@@ -21,3 +21,12 @@ int _getInt(dynamic amount) {
       if (amount is double) return amount.toInt();
       return 0;
 }
+
+Map<String, dynamic> _$OGImageToJson(OGImage instance) => <String, dynamic>{
+      'url': instance.url,
+      'secure_url': instance.secureUrl,
+      'type': instance.type,
+      'alt': instance.alt,
+      'width': instance.width,
+      'height': instance.height,
+    };

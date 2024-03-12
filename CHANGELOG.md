@@ -1,7 +1,22 @@
+## v4.2.4 (Mar 8, 2024)
+
+### Improvements
+- Fixed the exception regarding unmodifiable list
+
+## v4.2.3 (Mar 4, 2024)
+
+### Improvements
+- Fixed the bug where `query` in `GroupChannelCollection` does not work when reconnected
+
+## v4.2.2 (Fed 15, 2024)
+
+### Improvements
+- Fixed the bug where `votedPollOptionIds` in `Poll` is always empty
+
 ## v4.2.1 (Fed 5, 2024)
 
 ### Improvements
-- Fixed the bug where `getCachedMetaData()` in `BaseChannel` is not being updated when deleting metadata.
+- Fixed the bug where `getCachedMetaData()` in `BaseChannel` is not being updated when deleting metadata
 
 ## v4.2.0 (Jan 31, 2024)
 

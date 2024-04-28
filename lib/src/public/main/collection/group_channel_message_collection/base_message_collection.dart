@@ -217,6 +217,7 @@ abstract class BaseMessageCollection {
 
     List<RootMessage> messages = [];
     ChannelMessagesGetResponse? res;
+    Object? exception;
 
     if (isCacheHit == false) {
       try {
@@ -233,10 +234,15 @@ abstract class BaseMessageCollection {
         ));
 
         messages.addAll(res.messages);
-      } catch (_) {}
+      } catch (e) {
+        exception = e;
+      }
     }
 
     if (_isDisposed) {
+      if (exception != null && !_chat.apiClient.throwExceptionForTest) {
+        throw exception;
+      }
       return;
     }
 
@@ -300,6 +306,10 @@ abstract class BaseMessageCollection {
       }
     }
     //- [DBManager]
+
+    if (exception != null && !_chat.apiClient.throwExceptionForTest) {
+      throw exception;
+    }
   }
 
   void _setValuesForInitialize({
@@ -474,6 +484,7 @@ abstract class BaseMessageCollection {
     List<RootMessage> messages = [];
     bool? hasNext;
     ChannelMessagesGetResponse? res;
+    Object? exception;
 
     if (isCacheHit == false) {
       try {
@@ -493,11 +504,22 @@ abstract class BaseMessageCollection {
 
         messages.addAll(res.messages);
         hasNext = res.hasNext;
-      } catch (_) {}
+      } catch (e) {
+        exception = e;
+
+        if (isPrevious) {
+          hasPrevious = true;
+        } else {
+          hasNext = true;
+        }
+      }
     }
 
     if (_isDisposed) {
       _isLoading = false;
+      if (exception != null && !_chat.apiClient.throwExceptionForTest) {
+        throw exception;
+      }
       return;
     }
 
@@ -562,6 +584,9 @@ abstract class BaseMessageCollection {
     }
 
     _isLoading = false;
+    if (exception != null && !_chat.apiClient.throwExceptionForTest) {
+      throw exception;
+    }
   }
 
   void _setValuesForLoadPrevious({
@@ -687,8 +712,14 @@ abstract class BaseMessageCollection {
     // hasPrevious
     if (hasPrevious) {
       if (messageList.isNotEmpty) {
-        if (addedMessage.createdAt < messageList.first.createdAt) {
-          return false;
+        if (params.reverse) {
+          if (addedMessage.createdAt < messageList.last.createdAt) {
+            return false;
+          }
+        } else {
+          if (addedMessage.createdAt < messageList.first.createdAt) {
+            return false;
+          }
         }
       }
     }
@@ -696,8 +727,14 @@ abstract class BaseMessageCollection {
     // hasNext
     if (hasNext) {
       if (messageList.isNotEmpty) {
-        if (addedMessage.createdAt > messageList.first.createdAt) {
-          return false;
+        if (params.reverse) {
+          if (addedMessage.createdAt > messageList.first.createdAt) {
+            return false;
+          }
+        } else {
+          if (addedMessage.createdAt > messageList.last.createdAt) {
+            return false;
+          }
         }
       }
     }
@@ -800,6 +837,34 @@ abstract class BaseMessageCollection {
     }
 
     return canUpdate;
+  }
+
+  Future<void> resetMyHistory({
+    required String channelUrl,
+    int? messageOffsetTimestamp,
+  }) async {
+    if (_initializeParams.reverse) {
+      _hasNext = false;
+    } else {
+      _hasPrevious = false;
+    }
+
+    final deletedMessageIds = messageList
+        .where((message) {
+          return (messageOffsetTimestamp == null ||
+              message.createdAt <= messageOffsetTimestamp);
+        })
+        .map((message) => message.rootId)
+        .toList();
+
+    _chat.collectionManager.sendEventsToMessageCollection(
+      messageCollection: this,
+      baseChannel: baseChannel,
+      eventSource: CollectionEventSource.eventMessageDeleted,
+      sendingStatus: SendingStatus.succeeded,
+      deletedMessageIds: deletedMessageIds,
+      isResetMyHistory: true,
+    );
   }
 
   /// Sends mark as read to this channel.

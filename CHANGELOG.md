@@ -1,3 +1,42 @@
+## v4.2.12 (Apr 24, 2024)
+
+### Breaking changes
+- The return type for `getUndeliveredMembers()` was updated from `List<Member>` to `List<Member>?`
+
+### Features
+- Updated dependency range for `connectivity_plus` package from `^5.0.1` to `>=5.0.1 <7.0.0`
+
+### Improvements
+- Fixed `MessageCollection` regarding `resetMyHistory()` in `GroupChannel`
+- Fixed `removeFailedMessage()` and `removeAllFailedMessages()` in `MessageCollection`
+- Fixed the bugs regarding message change log, pending message removal, typing status and delivered status
+- Improved stability
+
+## v4.2.11 (Apr 18, 2024)
+
+### Improvements
+- Fixed the bug that there are duplicate channels in `GroupChannelCollection`
+- Added default mimeType in `FileMessageCreateParams`
+
+## v4.2.10 (Apr 9, 2024)
+
+### Features
+- Added the privacy manifest file for iOS
+
+### Improvements
+- Fixed the bug that there are duplicate channels in `GroupChannelCollection`
+
+## v4.2.9 (Apr 3, 2024)
+
+### Improvements
+- Fixed the bugs regarding error handling in `MessageCollection`
+- Fixed the bug that `mentionedUserIds` is missing in a pending message
+
+## v4.2.8 (Mar 27, 2024)
+
+### Improvements
+- Fixed the compile error regarding logger v1.4.0
+
 ## v4.2.7 (Mar 21, 2024)
 
 ### Improvements

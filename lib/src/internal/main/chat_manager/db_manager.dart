@@ -33,11 +33,14 @@ import 'package:sendbird_chat_sdk/src/internal/main/model/reconnect_task.dart';
 import 'package:sendbird_chat_sdk/src/internal/main/stats/model/default/local_cache_event_stat.dart';
 import 'package:sendbird_chat_sdk/src/internal/main/stats/sendbird_statistics.dart';
 import 'package:sendbird_chat_sdk/src/internal/main/stats/stat_utils.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:universal_io/io.dart';
 
 class DBManager {
-  final _dbName = 'sendbird_chat';
-  final _maxDBFileSize = 256; // MB
+  final int _dbVersion = 1;
+  final String _dbName = 'sendbird_chat';
+  final int _maxDBFileSize = 256; // MB
+  final String _dbVersionKey = 'com.sendbird.chat.db_version';
 
   late final Isar _isar;
   bool _isInitialized = false;
@@ -53,6 +56,8 @@ class DBManager {
   }
 
   Future<bool> init() async {
+    sbLog.i(StackTrace.current);
+
     try {
       if (_chat.isTest) {
         // https://github.com/isar/isar#unit-tests
@@ -95,7 +100,18 @@ class DBManager {
 
     _db = DB(chat: _chat, isar: _isar);
     _isInitialized = true;
+
+    await _checkVersion();
     return true;
+  }
+
+  Future<void> _checkVersion() async {
+    final prefs = await SharedPreferences.getInstance();
+    final preDbVersion = prefs.getInt(_dbVersionKey);
+    if (preDbVersion == null || _dbVersion > preDbVersion) {
+      await clear();
+      await prefs.setInt(_dbVersionKey, _dbVersion);
+    }
   }
 
   bool isEnabled() {
@@ -133,6 +149,7 @@ class DBManager {
   Future<void> clear() async {
     if (isEnabled()) {
       try {
+        sbLog.d(StackTrace.current);
         await _db.clear();
       } catch (e) {
         sbLog.e(StackTrace.current, e.toString());
@@ -223,7 +240,7 @@ class DBManager {
   }
 
   // Channel
-  Future<void> deleteMessagesInChannel(channelUrl) async {
+  Future<void> deleteMessagesInChannel(String channelUrl) async {
     if (isEnabled()) {
       // Messages
       await deleteMessagesInDeletedChannel(channelUrl);
@@ -423,31 +440,31 @@ class DBManager {
     required String channelUrl,
     required List<BaseMessage> messages,
   }) async {
-    if (isEnabled()) {
-      final failedMessages = messages
-          .where((message) => message.sendingStatus == SendingStatus.failed)
-          .toList();
+    final failedMessages = messages
+        .where((message) => message.sendingStatus == SendingStatus.failed)
+        .toList();
 
+    if (isEnabled()) {
       await _db.removeFailedMessages(
         channelType: channelType,
         channelUrl: channelUrl,
         messages: failedMessages,
       );
+    }
 
-      // Event
-      for (final messageCollection
-          in _chat.collectionManager.baseMessageCollections) {
-        if (messageCollection.baseChannel.channelUrl == channelUrl) {
-          _chat.collectionManager.sendEventsToMessageCollection(
-            messageCollection: messageCollection,
-            baseChannel: messageCollection.baseChannel,
-            eventSource: CollectionEventSource.eventMessageDeleted,
-            sendingStatus: SendingStatus.failed,
-            deletedMessageIds:
-                failedMessages.map((message) => message.rootId).toList(),
-          );
-          break;
-        }
+    // Event
+    for (final messageCollection
+        in _chat.collectionManager.baseMessageCollections) {
+      if (messageCollection.baseChannel.channelUrl == channelUrl) {
+        _chat.collectionManager.sendEventsToMessageCollection(
+          messageCollection: messageCollection,
+          baseChannel: messageCollection.baseChannel,
+          eventSource: CollectionEventSource.eventMessageDeleted,
+          sendingStatus: SendingStatus.failed,
+          deletedMessageIds:
+              failedMessages.map((message) => message.rootId).toList(),
+        );
+        break;
       }
     }
   }
@@ -461,27 +478,27 @@ class DBManager {
         channelType: channelType,
         channelUrl: channelUrl,
       );
+    }
 
-      // Event
-      for (final messageCollection
-          in _chat.collectionManager.baseMessageCollections) {
-        if (messageCollection.baseChannel.channelUrl == channelUrl) {
-          final failedMessages = messageCollection.messageList
-              .where((message) =>
-                  message is! BaseMessage ||
-                  message.sendingStatus == SendingStatus.failed)
-              .toList();
+    // Event
+    for (final messageCollection
+        in _chat.collectionManager.baseMessageCollections) {
+      if (messageCollection.baseChannel.channelUrl == channelUrl) {
+        final failedMessages = messageCollection.messageList
+            .where((message) =>
+                message is! BaseMessage ||
+                message.sendingStatus == SendingStatus.failed)
+            .toList();
 
-          _chat.collectionManager.sendEventsToMessageCollection(
-            messageCollection: messageCollection,
-            baseChannel: messageCollection.baseChannel,
-            eventSource: CollectionEventSource.eventMessageDeleted,
-            sendingStatus: SendingStatus.failed,
-            deletedMessageIds:
-                failedMessages.map((message) => message.rootId).toList(),
-          );
-          break;
-        }
+        _chat.collectionManager.sendEventsToMessageCollection(
+          messageCollection: messageCollection,
+          baseChannel: messageCollection.baseChannel,
+          eventSource: CollectionEventSource.eventMessageDeleted,
+          sendingStatus: SendingStatus.failed,
+          deletedMessageIds:
+              failedMessages.map((message) => message.rootId).toList(),
+        );
+        break;
       }
     }
   }
